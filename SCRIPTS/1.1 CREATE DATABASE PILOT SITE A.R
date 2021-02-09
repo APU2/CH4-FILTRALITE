@@ -13,9 +13,9 @@ library(pracma)
 
 
 # create database
-expdat <- src_sqlite("DATA/roseberypilot.sqlite3", create = T)
+expdat <- src_sqlite("DATA/PilotSiteA.sqlite3", create = T)
 
-rsqlite_conn<-dbConnect(RSQLite::SQLite(),  dbname= "DATA/roseberypilot.sqlite3")
+rsqlite_conn<-dbConnect(RSQLite::SQLite(),  dbname= "DATA/PilotSiteA.sqlite3")
 
 
 

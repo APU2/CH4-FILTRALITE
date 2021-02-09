@@ -155,13 +155,13 @@ plot_pilot_runs_summarised<- plot_pilot_runs%>%
 
 
 
-model_pilot_runs_summarised
+
 
 #selected_runs<- c("18_OCTB", "18_OCTC", "18_OCTD","18_SEPD", "18_SEPE", "18_SEPG")
 
-selected_run_info<- tbl(expdat, "run_log")%>%collect()%>%
-          dplyr::filter(run_id %in% selected_runs,
-                        col != "C2")
+# selected_run_info<- tbl(expdat, "run_log")%>%collect()%>%
+#           dplyr::filter(run_id %in% selected_runs,
+#                         col != "C2")
 
 gg_direct_turb<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement == "TURB"
                                                   )%>%
@@ -170,7 +170,7 @@ gg_direct_turb<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement ==
                  group_by(col, run_id)
        , aes(x = hour, y = value, colour = media_lab, linetype = factor(total_rinse_vol), group = interaction(media_lab,run_id)))+
           geom_line()+
-          xlim(0,60)+
+          #xlim(0,60)+
           ylim(0,3)+
           theme_minimal()+
           scale_color_brewer(palette = "Dark2", name = "Media")+
@@ -179,7 +179,8 @@ gg_direct_turb<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement ==
           labs(#title = "Turbidity profiles for direct filtration with sand and filtralite",
                x = "Hours in run",
                y = "Turbidity (NTU)")+
-          geom_hline(yintercept = 0.1)
+          geom_hline(yintercept = 0.1)+
+    scale_x_continuous(breaks = seq(0,60,5))
           
 gg_direct_turb
 
@@ -189,11 +190,12 @@ ggsave(gg_direct_turb, file = "PLOTS/camps_turb.png", width = 20, height=15, uni
 gg_direct_turb2<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement == "TURB"
 )%>%
           dplyr::filter(media_lab !="208 EA",
-                        media_lab !="0.5-1mm Filtralite HC & 1.5-2.5mm Filtralite HC")%>%
+                        media_lab !="0.5-1mm Filtralite HC & 1.5-2.5mm Filtralite HC",
+                        run_id == "18_OCTA")%>%
           group_by(col, run_id)
-, aes(x = timestamp, y = value, colour = media_lab, linetype = factor(total_rinse_vol), group = interaction(media_lab,run_id)))+
-          geom_line()+
-          ylim(0,4)+
+, aes(x = timestamp, y = value, colour = media_lab))+
+          geom_point()+
+          #ylim(0,4)+
           theme_minimal()+
           scale_color_brewer(palette = "Dark2", name = "Media")+
           theme(legend.position = "bottom")+
@@ -204,7 +206,7 @@ gg_direct_turb2<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement =
 
 gg_direct_turb2
 
-ggsave(gg_direct_turb, file = "PLOTS/camps_turb.png", width = 20, height=15, units = "cm")
+#ggsave(gg_direct_turb, file = "PLOTS/camps_turb.png", width = 20, height=15, units = "cm")
 
 
 gg_direct_headloss<-ggplot(plot_pilot_runs_summarised%>%dplyr::filter(measurement == "DP"
@@ -227,7 +229,6 @@ gg_direct_headloss
 
 ggsave(gg_direct_headloss, file = "PLOTS/camps_hl.png", width = 20, height=15, units = "cm")
 
-colnames(camps_24hrs)
 
 
 
@@ -260,4 +261,29 @@ camps_dp_lme<-lme(DP~filtralite,
           data = headloss_model_data_camps)
 
 
+run_info_summary%>%
+    group_by(media_lab)%>%
+    dplyr::filter(run)
+
+unique(run_info$run_issue)
+
+pilot_runs_summarised<- plot_pilot_runs_summarised%>%
+    group_by(col, run_id, media_lab)%>%
+    select(Measure, value, hour)%>%
+    pivot_wider(names_from = Measure, values_from = value)%>%
+    summarise(`CBHL (m)` = first(na.omit(`HL (M)`)),
+              `UFRV (EBV)` = max(hour)*4,
+              `Breakthrough (EBV)` = min(hour[`Turb (NTU)`  > 0.1 & hour>2])*4,
+              `Censored` = ifelse(is.infinite(`Breakthrough (EBV)`), "CENSORED","NOT-CENSORED" ),
+              `Breakthrough (EBV)` = ifelse(is.infinite(`Breakthrough (EBV)`), `UFRV (EBV)`,`Breakthrough (EBV)` ),
+              `VNHL (mm/EBV)` = round(mean((`HL (M)`-`CBHL (m)`)/(hour*4), na.rm = T)*1000)
+              )
+
+
+pilot_runs_summarised%>%
+    ungroup()%>%
+    group_by(media_lab)%>%
+    summarise_each(funs = "mean")
+    
+    
 

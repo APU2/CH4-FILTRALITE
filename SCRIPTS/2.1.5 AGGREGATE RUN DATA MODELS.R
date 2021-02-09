@@ -3,9 +3,83 @@
 # data for modelling ####
 
 model_data<-run_data%>%
-    mutate(media_label = ifelse(media_label == "Sand 0.5-1mm & Anthracite 0.8-1.6mm","SA","FL"),
+    mutate(media_label = ifelse(media_label == "Sand 0.5-1mm & Anthracite 0.8-1.6mm","A - SA","B - FL"),
            upwash_label = gsub(" upwash","",upwash_label),
-           blend_fct = gsub(" Blend","", blend_fct))
+           blend_fct = gsub(" Blend","", blend_fct))%>%
+    arrange(., media_label)
+
+
+run_table_data<- model_data%>%
+    select(run_id,start_date, blend_fct,upwash_rate,media_label,ufrv,brkthru,NORM_CBHL,vol_adj_norm_hl,censored )
+
+run_table_data_censored<- run_table_data%>%
+    select(media_label, blend_fct,upwash_rate,censored)%>%
+    group_by( blend_fct,upwash_rate,media_label)%>%
+    summarise(Count = length(censored),
+              `CENSORED` = length(censored[censored==T]))
+
+run_table_data_summary_media<- run_table_data%>%
+    pivot_longer(cols = c(brkthru,NORM_CBHL,vol_adj_norm_hl,ufrv))%>%
+    group_by(media_label, name )%>%
+    summarise(value = paste0(round(mean(value, na.rm = T),2)," (",
+                             round(min(value, na.rm = T),2)," - ",
+                             round(max(value, na.rm = T),2),")"))%>%
+    pivot_wider(names_from = name, values_from = value)%>%
+    transmute(`Media` = media_label,
+
+              `UFRV (EBV)` = ufrv,
+              `Breakthrough (EBV)` = brkthru,
+              `NCBHL (m)` = NORM_CBHL,
+              `VNHL (m)` = vol_adj_norm_hl
+    )
+
+run_table_data_summary<- run_table_data%>%
+    pivot_longer(cols = c(brkthru,NORM_CBHL,vol_adj_norm_hl,ufrv))%>%
+    group_by(blend_fct,upwash_rate,media_label, name )%>%
+    summarise(value = paste0(round(mean(value, na.rm = T),2)," (",
+                            round(min(value, na.rm = T),2)," - ",
+                            round(max(value, na.rm = T),2),")"))%>%
+    pivot_wider(names_from = name, values_from = value)%>%
+    left_join(., run_table_data_censored)%>%
+    arrange(blend_fct)%>%
+    transmute(`Media` = media_label,
+              `Blend` = blend_fct,
+              `Upwash rate (m3/m2/hr)` = upwash_rate,
+              `UFRV (EBV)` = ufrv,
+              `Breakthrough (EBV)` = brkthru,
+              `NCBHL (m)` = NORM_CBHL,
+              `VNHL (m)` = vol_adj_norm_hl,
+              `Runs` = Count,
+              `Censored` = CENSORED
+              )
+
+
+bt_summary<-run_table_data%>%
+    group_by(media_label, blend_fct)%>%
+    summarise(Count = length(censored),
+             `CENSORED` = length(censored[censored==T]),
+              min_ufrv = min(ufrv, na.rm = T),
+              max_ufrv = max(ufrv, na.rm = T),
+              mean_ufrv = mean(ufrv, na.rm = T))
+
+
+
+stargazer(run_table_data%>%
+              arrange(start_date)%>%
+              transmute(`Start Date` = as.character(floor_date(start_date, "day")),
+                        `Run ID` = run_id,
+                        `Blend` = blend_fct,
+                        `BW rate (m3/m2/hr)` = upwash_rate,
+                        `Media` = media_label,
+                        `UFRV (EBV)` = round(ufrv),
+                        `BT (EBV)` = round(brkthru),
+                        `NCBHL (m)` = round(NORM_CBHL,2),
+                        `VNHL (m)` = round(vol_adj_norm_hl,2),
+                        `Censored` = censored), type = "html", summary = F, out = "TABLES/RUN DATA.html", rownames = F)
+
+
+stargazer(run_table_data_summary%>%ungroup()%>%
+              select(-media_label, -blend_fct, -upwash_rate), type = "html", summary = F, out = "TABLES/RUN DATA SUMMARY.html", rownames = F)
 
 ## OLS models ####
 
@@ -118,7 +192,7 @@ media_only_models%>%
               model.names = T,
               model.type = T,
               column.labels = paste(.$blend_fct,.$name),
-              covariate.labels = c("Media = SA"),
+              #covariate.labels = c("Media = SA"),
               #dep.var.caption = "Particle breakthrough",
               digits = 1)
 
@@ -485,7 +559,7 @@ stargazer(list(lm_winter_brkthru_v,lm_winter_brkthru_vmf), ci=T,
               type = "html", out = "TABLES/WINTER BRKTHU MDLS.html",
               model.names = T,
               #column.labels = paste(.$blend_fct,.$RE),
-              covariate.labels = c( "Media = SA","BW rate (m3/m2/hr)", "BW rate/ Vmf"),
+              #covariate.labels = c( "Media = SA","BW rate (m3/m2/hr)", "BW rate/ Vmf"),
               dep.var.caption = "Particle breakthrough",
                 dep.var.labels.include = F,
               digits = 1)

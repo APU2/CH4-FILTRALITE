@@ -345,6 +345,7 @@ run_data<- run_stats%>%
     dplyr::filter(run_id %in% c("17_JULB", "17_JUNA","17_FEBA","17_FEBI","17_FEBH", "17_FEBG")==F,
                   run_time >10)
     
+    
 
 
 ggplot(run_data, aes(x = ufrv, y =brkthru, colour = brkthru_persistence, shape = censored))+

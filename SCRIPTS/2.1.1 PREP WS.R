@@ -22,3 +22,4 @@ library(lme4)
 registerDoParallel()  
 getDoParWorkers()
 
+

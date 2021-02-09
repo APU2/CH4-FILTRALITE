@@ -16,7 +16,7 @@ norm_cbhl_blend<-ggplot(run_data%>%dplyr::filter(is.na(dp_data_quality)==T),
                         aes(x = upwash_rate, y = NORM_CBHL , colour = media_label ))+
     geom_point()+
     #geom_text(aes(label = run_id))+
-    geom_smooth(method = "lm",formula = y~poly(x,2))+
+    geom_smooth(method = "lm",formula = y~poly(x,1))+
     facet_wrap(~blend_fct, ncol = 3)+
     theme_minimal()+
     labs(x = "Backwash rate (m/hr)",
@@ -41,7 +41,7 @@ norm_hl_acc<-ggplot(run_data%>%dplyr::filter(is.na(dp_data_quality)==T),
     facet_wrap(~blend_fct, ncol = 3)+
     theme_minimal()+
     labs(x = "Backwash rate (m/hr)",
-         y= "Normalised HL (mm/EBV)")+
+         y= "VNHLR (mm/EBV)")+
     scale_color_brewer(name = "Media", palette = "Dark2")+
     theme(legend.position = "bottom")
 
@@ -82,7 +82,7 @@ norm_cbhl_blend_vmf<-ggplot(run_data%>%dplyr::filter(is.na(dp_data_quality)==T),
     geom_smooth(method = "lm",formula = y~poly(x,1))+
     facet_wrap(~blend_fct, ncol = 3)+
     theme_minimal()+
-    labs(x = "Backwash rate (m/hr) / vmf",
+    labs(x = "Backwash rate / vmf",
          y= "Normalised CBHL (m)")+
     scale_color_brewer(name = "Media", palette = "Dark2")+
     theme(legend.position = "bottom")
@@ -102,8 +102,8 @@ norm_hl_acc_vmf<-ggplot(run_data%>%dplyr::filter(is.na(dp_data_quality)==T),
     geom_smooth(method = "lm",formula = y~poly(x,1))+
     facet_wrap(~blend_fct, ncol = 3)+
     theme_minimal()+
-    labs(x = "Backwash rate (m/hr) / vmf",
-         y= "Normalised HL (mm/EBV)")+
+    labs(x = "Backwash rate / vmf",
+         y= "VNHLR (mm/EBV)")+
     scale_color_brewer(name = "Media", palette = "Dark2")+
     theme(legend.position = "bottom")
 
@@ -122,7 +122,7 @@ brkthru_blend_vmf<-ggplot(run_data%>%dplyr::filter(is.na(brkthru)==F),
                                   censored ==F))+
     facet_wrap(~blend_fct, ncol = 3)+
     theme_minimal()+
-    labs(x = "Backwash rate (m/hr) / vmf",
+    labs(x = "Backwash rate / vmf",
          y= "Empty bed volumes at breakthrough")+
     scale_color_brewer(name = "Media", palette = "Dark2")+
     scale_shape(name =  "Censored")+
@@ -143,7 +143,7 @@ norm_cbhl_all<-ggplot(run_data%>%dplyr::filter(is.na(dp_data_quality)==T)%>%
                             aes(x = value, y = NORM_CBHL , colour = media_label, shape = blend_fct, linetype = blend_fct ))+
     geom_point()+
     #geom_text(aes(label = run_id))+
-    geom_smooth(method = "lm",formula = y~poly(x,2))+
+    geom_smooth(method = "lm",formula = y~poly(x,1))+
     facet_wrap(~facet, ncol = 2, scales = "free_x")+
     theme_minimal()+
     labs(x = "Backwash rate (m/hr) or (m/hr/vmf)",
