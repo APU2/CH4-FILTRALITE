@@ -337,6 +337,71 @@ sim_attachment<-1
 rm(sim_bed_depth)
 
 
+
+## Aggregate removal simulation ###
+
+
+bed<-
+
+
+
+
+
+
+## Mikol paper #####
+
+roughing_collectors<-data.frame(layer = c("Lower layer (500mm)", "Upper layer (500mm)", "Lower layer (500mm)", "Lower layer (500mm)", "Upper layer (500mm)"), 
+                                    media = c("Sand 0.6-1.2 mm", "Anthracite 1.7-2.5 mm","Sand 0.85-1.7 mm",
+                                          "Filtralite HC 0.8-1.6 mm", "Filtralite NC 1.5-2.5 mm"),
+                       sim_collector_diameter = c(0.5*(0.63+0.85),0.5*(1.75 + 1.85), 0.5*(0.85 + 0.95), 
+                                                  0.98, 1.75)/1000,
+                       sim_porosity = c(0.43, 0.5, 0.43, 0.55,0.60 ),
+                       sim_bed_depth = c(0.5,0.5,0.5,0.5,0.5))
+
+sim_matrix_rough<-crossing(media = roughing_collectors$media,
+                           sim_particle_diameter = c(#1e-9,2e-9,3e-9,4e-9,5e-9,6e-9,7e-9,8e-9,9e-9,
+                                                     #1e-8,2e-8,3e-8,4e-8,5e-8,6e-8,7e-8,8e-8,9e-8,
+                                                     #1e-7,2e-7,3e-7,4e-7,5e-7,6e-7,7e-7,8e-7,9e-7#,
+                                                     1e-6,2e-6,3e-6,4e-6,5e-6,6e-6,7e-6,8e-6,9e-6,
+                                                     1e-5,2e-5,3e-5,4e-5,5e-5,6e-5,7e-5,8e-5,9e-5#,
+                                                     #1e-4,2e-4,3e-4,4e-4,5e-4,6e-4,7e-4,8e-4,9e-4
+                                                     )
+                           )%>%
+                    left_join(., roughing_collectors)%>%
+    mutate(yao_transport = f_yao_transport_efficiency(particle_diameter_m = sim_particle_diameter, collector_diameter_m = sim_collector_diameter, 
+                                                      visc_kgms = sim_visc_kgms, filtration_rate_ms = sim_filtration_rate, temp_degc = 10, 
+                                                      particle_density_kgm3 = sim_particle_density, liquid_density_kgm3 = sim_liquid_density),
+           RT_transport = f_RT_transport_efficiency(porosity = sim_porosity, visc_kgms = sim_visc_kgms, particle_diameter_m = sim_particle_diameter, 
+                                                    collector_diameter_m = sim_collector_diameter, filtration_rate_ms = sim_filtration_rate, 
+                                                    temp_degc = 10, particle_density_kgm3 = sim_particle_density, 
+                                                    liq_density_kgm3 = sim_liquid_density),
+           TE_transport = f_TE_transport_efficiency(porosity = sim_porosity,particle_diameter_m = sim_particle_diameter, collector_diameter_m = sim_collector_diameter,temp_degc = 10,
+                                                    visc_kgms = sim_visc_kgms,
+                                                    filtration_rate_ms = sim_filtration_rate, particle_density_kgm3 = sim_particle_density, 
+                                                    liq_density_kgm3 = sim_liquid_density))%>%
+    pivot_longer(cols = 7:9)%>%
+    separate(col = name, into = c("model", "rate"), sep = "_")%>%
+    pivot_wider(names_from = rate, values_from = value)%>%
+    mutate( removal_rate = f_removal_rate(porosity = sim_porosity, transport_efficiency = transport,attachment_efficiency = sim_attachment, 
+                                          bed_depth_m = sim_bed_depth, collector_diameter_m = sim_collector_diameter),
+            particle_micron = sim_particle_diameter*1000000)
+
+
+ggplot(sim_matrix_rough%>%
+           dplyr::filter(model == "RT")
+       , aes(x = particle_micron, y = removal_rate, colour = media, group = interaction(model, media)))+
+    geom_line()+
+    scale_x_log10()+
+    facet_grid(~layer)+
+    theme_minimal()+
+    geom_vline(xintercept = c(5,20))
+
+
+
+
+
+
+
 collectors<- data.frame(media = c("Sand 0.5-1mm", "Anthracite 0.8-1.6mm", "Filtralite HC 0.5-1mm", "Filtralite NC 0.8-1.6mm", "Sand 0.85-1.7mm", "Filtralite NC (monomedia) 0.8-1.6mm"),
                         sim_collector_diameter = c(0.6, 0.98, 0.52, 0.98,1, 0.98)/1000,
                         sim_porosity = c(0.43, 0.5, 0.55,0.61, 0.43, 0.61),
@@ -372,7 +437,9 @@ sim_matrix_ptcl_temp<- crossing(media = c("Sand 0.5-1mm", "Anthracite 0.8-1.6mm"
                                 particle_micron = sim_particle_diameter*1000000)
 
 
-ggplot(sim_matrix_ptcl_temp, aes(x = particle_micron, y = removal_rate, colour = sim_temp, group = interaction(model, sim_temp)))+
+ggplot(sim_matrix_ptcl_temp%>%
+           dplyr::filter(model == "RT")
+       , aes(x = particle_micron, y = removal_rate, colour = sim_temp, group = interaction(model, sim_temp)))+
     geom_line()+
     scale_x_log10()+
     facet_grid(~media)+
@@ -452,7 +519,9 @@ filter_sim_es<- crossing(media_size = c(0.6,0.52)/1000,
 
 
 
-ggplot(filter_sim_es, aes(x = particle_micron, y = removal_rate, colour = interaction(effective_size, sim_porosity) ))+
+ggplot(filter_sim_es%>%
+           dplyr::filter(model =="TE")
+       , aes(x = particle_micron, y = removal_rate, colour = interaction(effective_size, sim_porosity) ))+
     geom_line()+
     scale_x_log10()+
     facet_wrap(~model)
